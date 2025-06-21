@@ -7,7 +7,7 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>({} as AuthContextType); // <== updated here
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const checkAuth = () => {
     const token = localStorage.getItem('adminToken');
     const tokenExpiry = localStorage.getItem('tokenExpiry');
-    
+
     if (!token || !tokenExpiry) {
       setIsAuthenticated(false);
       return false;
@@ -24,10 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const isExpired = new Date().getTime() > parseInt(tokenExpiry);
     if (isExpired) {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('tokenExpiry');
-      localStorage.removeItem('adminUser');
-      localStorage.removeItem('adminAuthenticated');
+      localStorage.clear(); // simplified
       setIsAuthenticated(false);
       return false;
     }
@@ -37,16 +34,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('tokenExpiry');
-    localStorage.removeItem('adminUser');
-    localStorage.removeItem('adminAuthenticated');
+    localStorage.clear(); // simplified
     setIsAuthenticated(false);
     navigate('/');
   };
 
   useEffect(() => {
-    const interval = setInterval(checkAuth, 1000 * 60); // Check every minute
+    checkAuth();
+    const interval = setInterval(checkAuth, 1000 * 60);
     return () => clearInterval(interval);
   }, []);
 
@@ -57,10 +52,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export const useAuth = (): AuthContextType => {
+  return useContext(AuthContext);
 };

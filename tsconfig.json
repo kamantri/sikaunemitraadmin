@@ -9,15 +9,11 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "axios"],
-    "typeRoots": ["./node_modules/@types"],
     "noImplicitAny": false,
     "noUnusedParameters": false,
     "skipLibCheck": true,
     "allowJs": true,
     "noUnusedLocals": false,
-    "strictNullChecks": false,
-    "esModuleInterop": true,
-    "moduleResolution": "node"
+    "strictNullChecks": false
   }
 }

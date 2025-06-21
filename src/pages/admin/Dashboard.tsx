@@ -19,7 +19,7 @@ import {
   BarChart2,  // Remove this unused import
   BookOpen, 
   FileText, 
-  GraduationCap, 
+  GraduationCap, Megaphone,
   PlusCircle, 
   Users,
   StickyNote 
@@ -114,12 +114,12 @@ const usersByMonth = [
 
 const quickStats = [
   {
-    title: "Total Students",
+    title: "Total Users",
     value: "2,945",
     icon: Users,
     change: "+12.5%",
     changeType: "positive",
-    link: "/admin/students"
+    link: "/admin/all-users"
   },
   {
     title: "Total Courses",
@@ -128,22 +128,29 @@ const quickStats = [
     change: "+7.2%",
     changeType: "positive",
     link: "/admin/courses"
-  },
-  {
-    title: "Active Teachers",
-    value: "268",
-    icon: GraduationCap,
-    change: "+4.3%",
-    changeType: "positive",
-    link: "/admin/teachers"
-  },
-  {
+  },{
     title: "Blog Posts",
     value: "157",
     icon: FileText,
     change: "+10.1%",
     changeType: "positive",
     link: "/admin/blogs"
+  },
+  // {
+  //   title: "Active Teachers",
+  //   value: "268",
+  //   icon: GraduationCap,
+  //   change: "+4.3%",
+  //   changeType: "positive",
+  //   link: "/admin/teachers"
+  // },
+  {
+    title: "Ads",
+    value: "157",
+    icon: Megaphone,
+    change: "+1.1%",
+    changeType: "negative",
+    link: "/admin/ads"
   },
   {
     title: "Study Notes",

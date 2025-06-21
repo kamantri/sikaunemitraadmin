@@ -9,26 +9,32 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Edit, Trash2, Plus, User } from "lucide-react";
+import { apiService } from "@/utils/api";
+import { UserData } from "@/models/User";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+
+// Remove the old fetchUsers function and use apiService
 const fetchUsers = async () => {
-  const token = localStorage.getItem('token');
-  const response = await fetch('http://localhost:4000/api/users', {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-  if (!response.ok) throw new Error('Failed to fetch users');
-  return response.json();
+  try {
+    const response = await apiService.users.getAll();
+    console.log('Users data:', response); // Debug log
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
 };
 
 export default function Users() {
   const [isOpen, setIsOpen] = useState(false);
-  const [editUser, setEditUser] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [editUser, setEditUser] = useState<UserData | null>(null);
+  const [formData, setFormData] = useState<UserData>({
     name: '',
     email: '',
     password: '',
-    role: 'student'
+    role: 'student',
+    status: 'active'
   });
 
   const { data: users, isLoading, error, refetch } = useQuery({
@@ -43,7 +49,8 @@ export default function Users() {
         name: user.name,
         email: user.email,
         password: '', // Don't show password
-        role: user.role
+        role: user.role,
+        status: user.status || 'active' // Add status field
       });
     } else {
       setEditUser(null);
@@ -51,7 +58,8 @@ export default function Users() {
         name: '',
         email: '',
         password: '',
-        role: 'student'
+        role: 'student',
+        status: 'active' // Default status for new users
       });
     }
     setIsOpen(true);
@@ -66,78 +74,73 @@ export default function Users() {
     setFormData(prev => ({ ...prev, role: value }));
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Then modify your handleSubmit function:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      const token = localStorage.getItem('token');
-      const url = editUser 
-        ? `http://localhost:4000/api/users/${editUser.id}`
-        : 'http://localhost:4000/api/auth/register';
-      
-      const method = editUser ? 'PUT' : 'POST';
-      
-      // Only include password if it's not empty
-      const userData = { ...formData };
-      if (!userData.password) delete userData.password;
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(userData)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save user');
+      if (editUser) {
+        await apiService.users.update(editUser.id!, formData);
+        toast.success('User updated successfully');
+      } else {
+        await apiService.auth.userRegister(formData);
+        toast.success('User created successfully');
       }
       
-      toast.success(editUser ? 'User updated successfully' : 'User created successfully');
       setIsOpen(false);
       refetch();
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving user:', error);
-      toast.error('Error saving user');
+      toast.error(error.message || 'Error saving user');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:4000/api/users/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete user');
-      }
-      
+      await apiService.users.delete(id);
       toast.success('User deleted successfully');
       refetch();
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error('Error deleting user');
+      toast.error(error.message || 'Error deleting user');
     }
   };
 
   const columns = [
     {
       accessorKey: "name",
-      header: "Name"
+      header: "Name",
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              <AvatarImage 
+                src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name || 'user'}`} 
+                alt={user.name || 'User'} 
+              />
+              <AvatarFallback className="bg-gray-100 dark:bg-gray-800">
+                {user.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : '??'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium">{user.name || 'Unknown User'}</p>
+              <p className="text-sm text-muted-foreground truncate max-w-[180px]">
+                {user.email || 'No email'}
+              </p>
+            </div>
+          </div>
+        );
+      },
     },
-    {
-      accessorKey: "email",
-      header: "Email"
-    },
+    
     {
       accessorKey: "role",
       header: "Role",
@@ -146,10 +149,64 @@ export default function Users() {
       )
     },
     {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }: any) => {
+        const status = row.original.status || 'active';
+        const statusColors = {
+          active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+          inactive: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+          banned: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+        };
+        
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors]}`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+        );
+      }
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }: any) => (
+        <div className="text-sm text-muted-foreground">
+          {row.original.email || 'No email'}
+        </div>
+      )
+    },
+    {
+      accessorKey: "last_login",
+      header: "Last Active",
+      cell: ({ row }: any) => {
+        return row.original.last_login 
+          ? new Date(row.original.last_login).toLocaleDateString()
+          : 'Never';
+      }
+    },
+    {
       accessorKey: "created_at",
       header: "Joined",
       cell: ({ row }: any) => {
-        return new Date(row.original.created_at).toLocaleDateString();
+        const dateString = row.original.created_at;
+        if (!dateString) return 'N/A';
+        
+        try {
+          // Parse the date string (format: YYYY-MM-DD HH:MM:SS)
+          const [datePart, timePart] = dateString.split(' ');
+          const [year, month, day] = datePart.split('-');
+          const date = new Date(`${year}-${month}-${day}T${timePart}`);
+          
+          return isNaN(date.getTime()) 
+            ? 'Invalid Date' 
+            : date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              });
+        } catch {
+          return 'Invalid Date';
+        }
       }
     },
     {
@@ -182,7 +239,7 @@ export default function Users() {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Users</h1>
+        <h1 className="text-2xl font-bold"> All Users</h1>
         <Button onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-2" />
           Add New User
@@ -231,7 +288,7 @@ export default function Users() {
                 />
               </div>
 
-              <div className="grid gap-2">
+              {/* <div className="grid gap-2">
                 <Label htmlFor="password">
                   {editUser ? "Password (leave empty to keep current)" : "Password"}
                 </Label>
@@ -243,7 +300,7 @@ export default function Users() {
                   onChange={handleInputChange}
                   required={!editUser}
                 />
-              </div>
+              </div> */}
 
               <div className="grid gap-2">
                 <Label htmlFor="role">Role</Label>
@@ -254,10 +311,28 @@ export default function Users() {
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
                     <SelectItem value="teacher">Teacher</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+             {/* Add this to your form inside the DialogContent, after the role Select */}
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select 
+                value={formData.status}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="banned">Banned</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex justify-end gap-2">

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,7 +36,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true, // Enable React.startTransition for transitions
+          v7_relativeSplatPath: true, // Enable relative splat path resolution
+        }}
+      >
         <AuthProvider>
           <Routes>
             <Route path="/" element={
@@ -49,7 +53,7 @@ const App = () => (
               <ProtectedRoute>
                 <AdminLayout />
               </ProtectedRoute>
-            }>
+            } >
               <Route index element={<Dashboard />} />
               <Route path="blog-posts" element={<BlogPosts />} />
               <Route path="courses" element={<Courses />} />

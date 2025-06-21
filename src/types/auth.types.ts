@@ -5,19 +5,17 @@ export interface LoginCredentials {
 
 export interface User {
   id: number;
-  name: string;
   email: string;
-  role: string;
 }
 
 export interface LoginResponse {
   token: string;
-  user: User;
+  id: number;
+  email: string;
 }
 
 export interface ApiResponse<T> {
-  status: 'success' | 'error';
-  message: string;
-  details?: string;
-  data: T;
+  success: boolean;
+  message?: string;
+  data?: T;
 }

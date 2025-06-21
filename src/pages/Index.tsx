@@ -10,6 +10,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Lock, Mail } from "lucide-react";
 import { authService } from "@/services/authService";
+import { log } from "console";
 
 // Update the login schema
 const loginSchema = z.object({
@@ -42,7 +43,6 @@ const Index = () => {
       toast.success("Login successful");
       navigate("/admin");
     } catch (error: any) {
-      console.error('Login error:', error);
       toast.error(error?.response?.data?.message || error.message || "Login failed");
     } finally {
       setIsLoading(false);
@@ -114,15 +114,7 @@ const Index = () => {
           </form>
         </Form>
 
-         {/* Update the credentials hint in the return section */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Use the following credentials:</p>
-          <p className="mt-2">
-            <span className="font-medium text-blue-600">Email:</span> admin@sikaunemitra.com
-            <span className="mx-2">|</span>
-            <span className="font-medium text-blue-600">Password:</span> adminpass
-          </p>
-        </div>
+     
       </div>
     </div>
   );
